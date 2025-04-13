@@ -385,4 +385,3 @@ This script is designed for Adobe Photoshop versions that support **ExtendScript
 ---
 
 **Enjoy clean, perfect curves — on your terms — with ShapeRounder!**
-```
