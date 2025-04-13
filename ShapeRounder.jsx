@@ -39,6 +39,9 @@ function getSelectedPathName() {
         return;
     }
     var doc = app.activeDocument;
+    // Compute a scaling factor so new coordinates match a 72ppi canvas.
+    var scaleFactor = 72 / doc.resolution;
+    
     var validPaths = [];
     var seenPathSignatures = {}; // key: name + anchorCount
 
@@ -112,6 +115,12 @@ function getSelectedPathName() {
     var fullPointList = []; // holds all point data from the selected path
     var pointSelections = {}; // Key: globalIndex, Value: { selected: bool, radius: number }
 
+    // ------------------------------
+    // Helper: Scale a 2-element point by a factor
+    function scalePoint(pt, factor) {
+        return [pt[0] * factor, pt[1] * factor];
+    }
+    
     // ------------------------------
     // Build the ScriptUI Panel
     // ------------------------------
@@ -338,6 +347,7 @@ function getSelectedPathName() {
                     for (var p = 0; p < sp.pathPoints.length; p++) {
                         var anchorPt = sp.pathPoints[p];
                         if (anchorPt && anchorPt.anchor) {
+                            // Use the original coordinate (no scaling in UI display)
                             fullPointList.push({
                                 globalIndex: globalPointIndex,
                                 subpathIndex: s,
@@ -558,6 +568,7 @@ function getSelectedPathName() {
                 for (var j = 0; j < sp.pathPoints.length; j++) {
                     var p = sp.pathPoints[j];
                     if (p && p.anchor && p.leftDirection && p.rightDirection && p.kind !== undefined) {
+                        // Do not scale backup data; keep the original coordinates.
                         pts.push({
                             anchor: p.anchor.slice(),
                             leftDirection: p.leftDirection.slice(),
@@ -649,9 +660,10 @@ function getSelectedPathName() {
                 for (var k = 0; k < len; k++) {
                     var p = pts[k];
                     var pinfo = new PathPointInfo();
-                    pinfo.anchor = p.anchor.slice();
-                    pinfo.leftDirection = p.leftDirection.slice();
-                    pinfo.rightDirection = p.rightDirection.slice();
+                    // Scale non-rounded point coordinates.
+                    pinfo.anchor = scalePoint(p.anchor.slice(), scaleFactor);
+                    pinfo.leftDirection = scalePoint(p.leftDirection.slice(), scaleFactor);
+                    pinfo.rightDirection = scalePoint(p.rightDirection.slice(), scaleFactor);
                     pinfo.kind = p.kind;
                     originalPoints.push(pinfo);
                 }
@@ -670,9 +682,9 @@ function getSelectedPathName() {
 
                 if (!sp.closed && (j === 0 || j === len - 1)) {
                     var origCopy = new PathPointInfo();
-                    origCopy.anchor = curr.anchor.slice();
-                    origCopy.leftDirection = curr.leftDirection.slice();
-                    origCopy.rightDirection = curr.rightDirection.slice();
+                    origCopy.anchor = scalePoint(curr.anchor.slice(), scaleFactor);
+                    origCopy.leftDirection = scalePoint(curr.leftDirection.slice(), scaleFactor);
+                    origCopy.rightDirection = scalePoint(curr.rightDirection.slice(), scaleFactor);
                     origCopy.kind = curr.kind;
                     pointProcessingData.push({ A: origCopy, orig: curr.anchor.slice() });
                     continue;
@@ -723,27 +735,16 @@ function getSelectedPathName() {
                             var h = (4 / 3) * Math.tan((Math.PI - thetaRad) / 4) * radiusToUse * (1 - params.flatness);
 
                             var pointA = new PathPointInfo();
-                            pointA.anchor = A_anchor;
-                            pointA.rightDirection = A_anchor;
-                            pointA.leftDirection = addVectors(
-                                A_anchor,
-                                scaleVector(
-                                    normalizeVector(subtractVectors(curr.anchor, A_anchor)),
-                                    h
-                                )
-                            );
+                            // Scale computed coordinates for pointA.
+                            pointA.anchor = scalePoint(A_anchor, scaleFactor);
+                            pointA.rightDirection = scalePoint(A_anchor, scaleFactor);
+                            pointA.leftDirection = scalePoint(addVectors(A_anchor, scaleVector(normalizeVector(subtractVectors(curr.anchor, A_anchor)), h)), scaleFactor);
                             pointA.kind = PointKind.CORNERPOINT;
 
                             var pointB = new PathPointInfo();
-                            pointB.anchor = B_anchor;
-                            pointB.rightDirection = addVectors(
-                                B_anchor,
-                                scaleVector(
-                                    normalizeVector(subtractVectors(curr.anchor, B_anchor)),
-                                    h
-                                )
-                            );
-                            pointB.leftDirection = B_anchor;
+                            pointB.anchor = scalePoint(B_anchor, scaleFactor);
+                            pointB.rightDirection = scalePoint(addVectors(B_anchor, scaleVector(normalizeVector(subtractVectors(curr.anchor, B_anchor)), h)), scaleFactor);
+                            pointB.leftDirection = scalePoint(B_anchor, scaleFactor);
                             pointB.kind = PointKind.CORNERPOINT;
 
                             pointProcessingData.push({ A: pointA, B: pointB, orig: curr.anchor.slice() });
@@ -752,9 +753,9 @@ function getSelectedPathName() {
                 }
                 if (!shouldRound) {
                     var origCopy = new PathPointInfo();
-                    origCopy.anchor = curr.anchor.slice();
-                    origCopy.leftDirection = curr.leftDirection.slice();
-                    origCopy.rightDirection = curr.rightDirection.slice();
+                    origCopy.anchor = scalePoint(curr.anchor.slice(), scaleFactor);
+                    origCopy.leftDirection = scalePoint(curr.leftDirection.slice(), scaleFactor);
+                    origCopy.rightDirection = scalePoint(curr.rightDirection.slice(), scaleFactor);
                     origCopy.kind = curr.kind;
                     pointProcessingData.push({ A: origCopy, orig: curr.anchor.slice() });
                 }
