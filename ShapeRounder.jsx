@@ -95,6 +95,7 @@ function getSelectedPathName() {
         editMode: defaultParams.editMode,
         customRadii: []
     };
+    var lastUsedGlobalRadius = params.radius; // store current Global Radius
     var action = "cancel";
     var origPathData = null;
     var pointControls = [];
@@ -278,7 +279,7 @@ function getSelectedPathName() {
                 var label = row.add("statictext", undefined, "P" + ptData.globalIndex + ": [" + ptData.anchor[0].toFixed(1) + ", " + ptData.anchor[1].toFixed(1) + "]");
                 label.preferredSize.width = 180;
 
-                var pointRadiusInput = row.add("edittext", undefined, defaultParams.radius.toString());
+                var pointRadiusInput = row.add("edittext", undefined, lastUsedGlobalRadius.toString());
                 pointRadiusInput.characters = 5;
                 pointRadiusInput.enabled = false;
                 pointRadiusInput.helpTip = "Radius for point " + ptData.globalIndex;
@@ -378,6 +379,10 @@ function getSelectedPathName() {
         flatnessInput.parent.enabled = true;
         grpMin.enabled = (mode === 1);
         grpMax.enabled = (mode === 1);
+        if (mode === 2) {
+            // Save the last used Global Radius
+            lastUsedGlobalRadius = parseFloat(radiusInput.text) || defaultParams.radius;
+        }
         customPointsContainer.visible = (mode === 2);
         if (mode === 2 && validPaths.length > 0 && pathDropdown.selection !== null) {
             var idx = pathDropdown.selection.index;
@@ -429,6 +434,14 @@ function getSelectedPathName() {
     };
 
     applyBtn.onClick = function() {
+        // Save current page selections before applying
+        for (var i = 0; i < pointControls.length; i++) {
+            var ctrl = pointControls[i];
+            pointSelections[ctrl.globalIndex] = {
+                selected: ctrl.checkbox.value,
+                radius: parseFloat(ctrl.input.text) || defaultParams.radius
+            };
+        }
         action = "apply";
         var selectedIndex = pathDropdown.selection.index;
         if (selectedIndex < 0 || selectedIndex >= validPaths.length) {
@@ -454,12 +467,10 @@ function getSelectedPathName() {
         params.editMode = editModeDropdown.selection.index;
         params.customRadii = [];
         if (params.editMode === 2) {
-            for (var i = 0; i < pointControls.length; i++) {
-                if (pointControls[i].checkbox.value) {
-                    var key = pointControls[i].globalIndex;
-                    var radiusVal = parseFloat(pointControls[i].input.text);
-                    if (!isNaN(radiusVal) && radiusVal >= 0) {
-                        params.customRadii[key] = radiusVal;
+            for (var key in pointSelections) {
+                if (pointSelections.hasOwnProperty(key)) {
+                    if (pointSelections[key].selected) {
+                        params.customRadii[key] = pointSelections[key].radius;
                     }
                 }
             }
