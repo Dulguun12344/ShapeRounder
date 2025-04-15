@@ -123,7 +123,7 @@ It's built for designers, illustrators, and UI artists who need Illustrator-leve
 
 ---
 
-### 🪟 Window Menu (Examples)
+### 🪟 Window Menu (Example)
 <!--<p align="center">
   <img src="screenshots/window-edit-all.png" alt="Edit All Points UI" width="220"/>
   <img src="screenshots/window-custom-points.png" alt="Custom Points UI" width="220"/>
