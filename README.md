@@ -132,7 +132,7 @@ It's built for designers, illustrators, and UI artists who need Illustrator-leve
 <p align="center"><em>ShapeRounder UI (Examples from earlier versions)</em></p>-->
 
 <p align="center">
-  <img src="screenshots/window-custom-corners.png" alt="Custom Corners UI" width="250"/>
+  <img src="screenshots/window-custom-corners.png" alt="Custom Corners UI" width="300"/>
 </p>
 <p align="center"><em>ShapeRounder UI</em></p>
 
