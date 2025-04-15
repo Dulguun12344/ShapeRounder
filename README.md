@@ -124,12 +124,17 @@ It's built for designers, illustrators, and UI artists who need Illustrator-leve
 ---
 
 ### 🪟 Window Menu (Examples)
-<p align="center">
+<!--<p align="center">
   <img src="screenshots/window-edit-all.png" alt="Edit All Points UI" width="220"/>
   <img src="screenshots/window-custom-points.png" alt="Custom Points UI" width="220"/>
   <img src="screenshots/window-only-corners.png" alt="Only Corners UI" width="220"/>
 </p>
-<p align="center"><em>ShapeRounder UI (Examples from earlier versions)</em></p>
+<p align="center"><em>ShapeRounder UI (Examples from earlier versions)</em></p>-->
+
+<p align="center">
+  <img src="screenshots/window-custom-corners.png" alt="Custom Corners UI" width="250"/>
+</p>
+<p align="center"><em>ShapeRounder UI</em></p>
 
 ---
 
