@@ -1,10 +1,20 @@
-# ShapeRounder ✨
+# ShapeRounder ✨ (v1.5)
 
-**ShapeRounder** is a powerful and precise Adobe Photoshop script designed to bring advanced vector path corner rounding capabilities directly into your workflow. Offering full per-point control, smart Bezier math, and a non-destructive editing process, it empowers you to refine any path with exceptional accuracy.
+**ShapeRounder** is a powerful and precise Adobe Photoshop script designed to bring advanced vector path corner rounding capabilities directly into your workflow. Offering sophisticated filtering, per-point/per-corner control, smart Bezier math, and a non-destructive editing process, it empowers you to refine any path with exceptional accuracy.
 
 Unlike Photoshop’s native shape rounding—which is limited to specific live shapes like rectangles or rounded rectangles—ShapeRounder works universally on **any vector path**. This includes Work Paths, Vector Masks on layers, paths defining Shape Layers, and complex shapes drawn manually with the Pen Tool.
 
 > **Note**: The name *ShapeRounder* was inspired by a similarly named commercial plugin. However, this script is an **independent project**, built entirely from scratch as a **free and open-source alternative**. It focuses on enhanced precision, customizable options, and aims to replicate Adobe’s native curvature formula as closely as possible within the ExtendScript environment.
+
+---
+
+## 🌟 Change Log (Summary)
+
+*   **v1.0 (Initial):** Basic rounding for all points, angle filtering, custom point selection.
+*   **v1.1/v1.2:** Introduced **Point Type Filter** ("All", "Inner", "Outer") to selectively round corners based on convexity/concavity in "Edit All Points" and "Only Corners" modes. Corrected initial logic for Inner/Outer detection.
+*   **v1.3:** Enhanced **Custom Points** mode: The Point Type Filter now dynamically filters the list of points displayed, allowing users to focus on specific point types (All, Inner, Outer) for manual selection.
+*   **v1.4:** Refined **"Only Corners"** mode: This mode now strictly targets only *geometric corners* (points where two straight line segments meet, with handles coincident with the anchor) that also satisfy the angle filter criteria.
+*   **v1.5:** Added **"Custom Corners"** mode: A new mode that presents a list containing *only* the geometric corners of the path (further filtered by the Point Type Filter), allowing precise selection and radius assignment for true corners. The Point Type Filter is now always active and filters the list in both "Custom Points" and "Custom Corners" modes.
 
 ---
 
@@ -25,14 +35,17 @@ Unlike Photoshop’s native shape rounding—which is limited to specific live s
     *   [Step 6: Apply Rounding](#step-6-apply-rounding)
 6.  [⚙️ Understanding the Settings](#️-understanding-the-settings)
     *   [Select Path](#select-path)
-    *   [Round Mode](#round-mode)
+    *   [Round Mode](#round-mode) **(Updated)**
     *   [Global Radius](#global-radius)
     *   [Flatness](#flatness)
+    *   [Point Type Filter](#point-type-filter) **(Enhanced)**
     *   [Min/Max Angle Filter](#minmax-angle-filter)
-    *   [Custom Points Panel](#custom-points-panel)
+    *   [Custom List Panel](#custom-list-panel) **(Enhanced)**
 7.  [📐 The Rounding Algorithm Explained](#-the-rounding-algorithm-explained)
     *   [Bezier Arc Approximation](#bezier-arc-approximation)
     *   [Geometric Safety Limits](#geometric-safety-limits)
+    *   [Geometric Corner Detection](#geometric-corner-detection) **(New)**
+    *   [Point Type Detection (Inner/Outer)](#point-type-detection-innerouter) **(New)**
 8.  [🛡️ Non-Destructive Workflow & Safety](#️-non-destructive-workflow--safety)
     *   [Automatic Backup](#automatic-backup)
     *   [Clear Output Naming](#clear-output-naming)
@@ -52,10 +65,11 @@ Unlike Photoshop’s native shape rounding—which is limited to specific live s
 
 Vector path refinement is crucial for clean and professional designs. While Adobe Illustrator excels at this, Photoshop's native tools are often insufficient for complex paths or precise control. ShapeRounder bridges this gap by providing:
 
-*   **Universal Path Support:** Works on *any* path type, not just basic shapes.
-*   **Granular Control:** Choose between global rounding, angle-based filtering, or precise per-point radius adjustments.
-*   **Mathematical Precision:** Uses a Bezier arc approximation formula reverse-engineered from Adobe Photoshop’s native shape rounding behavior. By analyzing the control points of live rounded shapes, ShapeRounder replicates the exact curvature formula for smooth, predictable results that match Adobe’s internal logic.
-*   **Non-Destructive Process:** Your original path is always preserved.
+*   **Universal Path Support:** Works on *any* path type selectable in the Paths panel.
+*   **Granular Control:** Choose between global rounding, angle-based filtering for true corners, precise per-point radius adjustments, or per-corner radius adjustments.
+*   **Intelligent Filtering:** Selectively target points based on angle, geometric type (true corners vs. any point), and concavity (Inner/Outer). **(Enhanced)**
+*   **Mathematical Precision:** Uses a Bezier arc approximation formula (based on user-provided logic) reverse-engineered from Adobe Photoshop’s native shape rounding behavior for smooth, predictable results.
+*   **Non-Destructive Process:** Your original path is always preserved via duplication.
 *   **Free and Open Source:** An accessible tool for everyone.
 
 It's built for designers, illustrators, and UI artists who need Illustrator-level corner rounding control without leaving Photoshop.
@@ -64,34 +78,39 @@ It's built for designers, illustrators, and UI artists who need Illustrator-leve
 
 ## ✨ Features at a Glance
 
-*   **Universal Path Selection:** Select any vector path from your document (Work Path, Shape Layer path, Vector Mask path).
-*   **Flexible Rounding Modes:**
-    *   `Edit All Points`: Applies rounding to every eligible corner point.
-    *   `Only Corners`: Rounds only points whose corner angle falls within a specified range (Min/Max Angle).
-    *   `Custom Points`: Allows selection of specific points to round, each with its own custom radius value.
-*   **Precise Bezier Math:** Implements accurate Bezier arc approximation using Adobe’s standard curvature formula for smooth results.
+*   **Universal Path Selection:** Select any vector path from your document (Work Path, Shape Layer path, Vector Mask path) via the Paths panel.
+*   **Flexible Rounding Modes (v1.5):**
+    *   `Edit All Points`: Applies rounding to every eligible point, respecting the Point Type Filter.
+    *   `Only Corners`: Rounds only points that are **geometric corners** (straight segments meeting at a point with coincident handles) *and* fall within the specified angle range (Min/Max Angle), respecting the Point Type Filter. **(Refined)**
+    *   `Custom Points`: Presents a paginated list of points (filtered by the Point Type Filter) allowing selection of specific points to round, each with its own custom radius value. **(Enhanced List Filtering)**
+    *   `Custom Corners`: Presents a paginated list containing *only* geometric corner points (further filtered by the Point Type Filter), allowing selection of specific corners to round, each with its own custom radius value. **(New Mode)**
+*   **Point Type Filtering:**
+    *   Filter points/corners processed in `Edit All Points`/`Only Corners` modes based on whether they are `All`, `Inner` (concave), or `Outer` (convex).
+    *   Dynamically filters the list of points/corners shown in `Custom Points`/`Custom Corners` modes. **(Enhanced)**
+*   **Precise Bezier Math:** Implements accurate Bezier arc approximation using the user-provided core formula for smooth results.
 *   **Intelligent Geometry Limits:** Automatically calculates the maximum possible rounding based on adjacent segment lengths to prevent overlaps and glitches.
 *   **Customizable Parameters:**
-    *   Define a `Global Radius` for consistent rounding.
-    *   Adjust `Flatness` to control the circularity of the curve (0% = circular arc).
-    *   Set `Min Angle` and `Max Angle` thresholds for the `Only Corners` mode.
-    *   Specify individual radii per point in `Custom Points` mode.
+    *   Define a `Global Radius` for consistent rounding (used in `Edit All Points` & `Only Corners` modes).
+    *   Adjust `Flatness` to control the circularity of the curve (0% = circular arc, applies to all modes).
+    *   Set `Min Angle` / `Max Angle` thresholds for the `Only Corners` mode.
+    *   Specify individual radii per point/corner in `Custom Points`/`Custom Corners` modes.
 *   **User-Friendly Interface (ScriptUI):**
     *   Clear dropdowns for path and mode selection.
     *   Sliders and text fields for easy parameter input.
-    *   **Paginated Point List:** Efficiently handles paths with many points in `Custom Points` mode, displaying points in manageable pages (3-5 points per page).
-    *   Interactive checkboxes and radius inputs for per-point customization.
+    *   **Dynamic Paginated List:** Efficiently handles paths with many points in `Custom Points`/`Custom Corners` modes, displaying filtered points/corners in manageable pages (approx. 5 per page). The list content and panel title update based on the selected mode and Point Type Filter. **(Enhanced)**
+    *   Interactive checkboxes and radius inputs for per-item customization.
 *   **Non-Destructive Workflow:**
     *   Automatically duplicates and renames the original path (e.g., `MyPath` becomes `MyPath (Original)`).
     *   Saves the modified path with a clear name (e.g., `MyPath (Rounded)`).
     *   Handles existing names by appending counters (e.g., `MyPath (Original) (1)`).
 *   **Robust Error Handling:** Includes an undo fallback mechanism that attempts to restore the original path if an error occurs during processing.
 *   **Subpath Compatibility:** Correctly processes both open and closed subpaths within a single path item.
-*   **Transparency:** Outputs a `ShapeRounder_Log.txt` file on the user's Desktop for debugging purposes (optional, can be commented out if not needed).
 
 ---
 
 ## 🖼️ Screenshots
+
+*(Note: Screenshots below may reflect earlier versions and might not show the "Custom Corners" mode or the dynamic list filtering. Updated screenshots are recommended for v1.5+.)*
 
 ### 🔁 Before & After Example
 
@@ -100,20 +119,19 @@ It's built for designers, illustrators, and UI artists who need Illustrator-leve
   &nbsp;&nbsp;
   <img src="screenshots/after.png" alt="After Rounding" width="220"/>
 </p>
-<p align="center"><em>Before and after rounding the corners of a star shape using ShapeRounder (same global radius).</em></p>
+<p align="center"><em>Before and after rounding the corners of a star shape using ShapeRounder.</em></p>
 
 ---
 
-### 🪟 Window Menu
+### 🪟 Window Menu (Examples)
 <p align="center">
   <img src="screenshots/window-edit-all.png" alt="Edit All Points UI" width="220"/>
   <img src="screenshots/window-custom-points.png" alt="Custom Points UI" width="220"/>
   <img src="screenshots/window-only-corners.png" alt="Only Corners UI" width="220"/>
 </p>
-<p align="center"><em>ShapeRounder UI</em></p>
+<p align="center"><em>ShapeRounder UI (Examples from earlier versions)</em></p>
 
 ---
-
 
 ## 📂 Installation
 
@@ -127,19 +145,18 @@ This makes the script readily available in Photoshop's Scripts menu.
     *   **Windows:** `C:\Program Files\Adobe\Adobe Photoshop [Version]\Presets\Scripts\`
     *   **macOS:** `/Applications/Adobe Photoshop [Version]/Presets/Scripts/`
     *(Replace `[Version]` with your specific Photoshop version, e.g., `Adobe Photoshop 2024`)*
-    *(Note: You might need administrator privileges to copy files into Program Files on Windows)*
-2.  **Copy `ShapeRounder.jsx`** into this `Scripts` folder.
-3.  **Restart Adobe Photoshop.** If Photoshop was already running, you need to restart it for the script to appear in the menu.
+    *(Note: You might need administrator privileges)*
+2.  **Copy `ShapeRounder.jsx`** (v1.5 or later) into this `Scripts` folder.
+3.  **Restart Adobe Photoshop.**
 4.  **Access the script** via `File > Scripts > ShapeRounder`.
 
 ### Option 2: Run on Demand
 
 Use this method if you prefer not to install the script permanently.
 
-1.  Save `ShapeRounder.jsx` to a convenient location on your computer (e.g., Desktop, a dedicated scripts folder).
+1.  Save `ShapeRounder.jsx` to a convenient location.
 2.  In Photoshop, go to `File > Scripts > Browse...`.
-3.  Navigate to where you saved `ShapeRounder.jsx` and select it.
-4.  Click **Open**. The script will run immediately.
+3.  Navigate to where you saved `ShapeRounder.jsx` and select it. Click **Open**.
 
 ---
 
@@ -149,10 +166,7 @@ Follow these steps to round corners on your paths:
 
 ### Step 1: Prepare Your Path
 
-Ensure your Photoshop document is open and contains at least one vector path. This can be:
-*   A **Work Path** visible in the Paths panel.
-*   The path associated with a **Shape Layer**.
-*   The path defining a **Vector Mask** on any layer.
+Ensure your Photoshop document is open and contains at least one vector path selectable in the Paths panel.
 
 *(Tip: For best results, ensure your path doesn't have overlapping points or zero-length segments at the corners you intend to round.)*
 
@@ -162,137 +176,132 @@ Go to `File > Scripts > ShapeRounder` (if installed) or `File > Scripts > Browse
 
 ### Step 3: Select the Target Path
 
-The ShapeRounder dialog window will appear.
-*   Use the **Select Path** dropdown menu at the top to choose the path you want to modify. The list includes all valid paths found in your document. If you had a path selected in the Paths panel before launching, it should be pre-selected.
+Use the **Select Path** dropdown menu at the top to choose the path you want to modify.
 
 ### Step 4: Choose a Rounding Mode
 
 Select how you want to apply rounding using the **Round Mode** dropdown:
 
-1.  **`Edit All Points`**: (Default) Attempts to round *every* corner point on the path using the `Global Radius` and `Flatness` settings. Open path endpoints are ignored.
-2.  **`Only Corners`**: Rounds only those corner points where the angle between the incoming and outgoing segments falls within the specified `Min Angle` and `Max Angle` range. Uses the `Global Radius` and `Flatness`.
-3.  **`Custom Points`**: Provides a list of all points on the selected path (paginated for long paths). You can:
-    *   **Check the box** next to a point (`P0`, `P1`, etc.) to enable rounding for that specific point.
-    *   **Enter a unique radius** value in the text field next to the checked point. If unchecked, the point remains unchanged.
-    *   Use the **Previous** / **Next** buttons to navigate through pages if the path has many points.
-    *   The `Global Radius` and `Angle Filter` settings are ignored in this mode. `Flatness` still applies.
+1.  **`Edit All Points`**: Attempts to round *every* eligible point on the path using the `Global Radius`, `Flatness`, and respecting the `Point Type Filter` setting. Open path endpoints are ignored.
+2.  **`Only Corners`**: Rounds only points that are **geometric corners** (where two straight segments meet) *and* whose angle falls within the specified `Min Angle`/`Max Angle` range. Uses `Global Radius`, `Flatness`, and respects the `Point Type Filter`. **(Refined)**
+3.  **`Custom Points`**: Provides a paginated list of points. The points shown in this list are filtered based on the **`Point Type Filter`** (`All`, `Inner`, or `Outer`). You can:
+    *   Check the box next to a listed point (`P0`, `P1`, etc.) to enable rounding for that specific point.
+    *   Enter a unique radius value in the text field next to the checked point.
+    *   Use the **Previous** / **Next** buttons to navigate pages.
+    *   `Global Radius` and `Angle Filter` settings are ignored. `Flatness` still applies. **(Enhanced List Filtering)**
+4.  **`Custom Corners`**: Provides a paginated list containing *only* points identified as **geometric corners**. This list is *also* filtered based on the **`Point Type Filter`** (`All`, `Inner`, or `Outer`). You can:
+    *   Check the box next to a listed corner (`P0`, `P1`, etc.) to enable rounding.
+    *   Enter a unique radius value for the checked corner.
+    *   Use the **Previous** / **Next** buttons to navigate pages.
+    *   `Global Radius` and `Angle Filter` settings are ignored. `Flatness` still applies. **(New Mode)**
 
 ### Step 5: Configure Settings
 
 Adjust the parameters based on your chosen mode:
 
 *   **`Global Radius (px)`**: (Used in `Edit All Points` & `Only Corners` modes) Sets the desired radius for the rounded corners in pixels.
-*   **`Flatness (%)`**: (Used in all modes) Controls the shape of the curve. 0% creates a standard circular arc approximation. Higher values flatten the curve towards the original corner point (e.g., 100% results in almost no rounding).
-*   **`Min Angle (°)` / `Max Angle (°)`**: (Used in `Only Corners` mode) Define the angle range (0° to 180°) for corners to be rounded. Use the sliders or check the numeric display.
+*   **`Flatness (%)`**: (Used in *all* modes) Controls the shape of the curve (0% = circular arc).
+*   **`Point Type Filter`**: (Used in *all* modes)
+    *   For `Edit All Points` / `Only Corners`: Filters which points/corners are *processed* based on type (`All`, `Inner`, `Outer`).
+    *   For `Custom Points` / `Custom Corners`: Filters which points/corners are *displayed* in the list for selection.
+*   **`Min Angle (°)` / `Max Angle (°)`**: (Used *only* in `Only Corners` mode) Define the angle range for geometric corners to be rounded.
+*   **Custom List Inputs**: (Used in `Custom Points` / `Custom Corners` modes) Checkboxes and radius fields next to each listed item.
 
 ### Step 6: Apply Rounding
 
 *   Click the **Apply** button.
-*   The script will:
-    1.  Duplicate the original path and rename it (e.g., `MyPath (Original)`).
-    2.  Create a new path with the rounded corners (e.g., `MyPath (Rounded)`).
-    3.  Select the new rounded path in the Paths panel.
-
-*   **Reset UI**: Click this button to revert all dialog settings to their default values.
-*   **Cancel**: Click this button or close the dialog window to exit without making any changes.
+*   The script duplicates the original path (`... (Original)`), creates the new rounded path (`... (Rounded)`), and selects it.
+*   **Reset UI**: Reverts all dialog settings to defaults.
+*   **Cancel**: Exits without changes.
 
 ---
 
 ## ⚙️ Understanding the Settings
 
-*   **Select Path:** Dropdown listing all detected vector paths (Work Paths, Shape Layer paths, Vector Mask paths) in the current document.
-*   **Round Mode:**
-    *   `Edit All Points`: Round all possible corners globally.
-    *   `Only Corners`: Round corners based on angle criteria.
-    *   `Custom Points`: Manually select points and assign individual radii.
-*   **Global Radius:** The target radius (in pixels) for rounded corners when using `Edit All Points` or `Only Corners` mode.
-*   **Flatness:** A percentage (0-100%) that modifies the curve's control points.
-    *   `0%`: Standard circular arc approximation. The Bezier control points are placed to best emulate a circular segment.
-    *   `100%`: Maximum flatness. The control points move closer to the original corner, resulting in a very tight, almost non-existent curve. Useful for subtle breaks.
-    *   Intermediate values allow for stylistic variations between a sharp corner and a full arc.
-*   **Min/Max Angle Filter:** Sliders (0°–180°) defining the range of interior corner angles to target when using `Only Corners` mode. A sharp corner (like 90° on a square) has a smaller angle, while a shallow turn has a larger angle (closer to 180°).
-*   **Custom Points Panel:** (Visible only in `Custom Points` mode)
-    *   **Checkbox:** Enables/disables rounding for the corresponding point.
-    *   **Point Label:** `P<index>` identifies the point globally across all subpaths (e.g., `P0`, `P1`, ...). Coordinates are shown for reference.
-    *   **Radius Input:** Text field to enter the specific radius (in pixels) for this point *only when its checkbox is ticked*.
-    *   **Pagination:** `Previous`/`Next` buttons appear if the path has more points than fit on one page (~5), allowing navigation through the list.
+*   **Select Path:** Dropdown listing detected vector paths from the Paths panel.
+*   **Round Mode:** **(Updated for v1.5)**
+    *   `Edit All Points`: Round all points that can form a corner (have neighbors), respecting the Point Type Filter.
+    *   `Only Corners`: Round only points identified as **geometric corners** (straight segments meeting, handles at anchor) that fall within the Min/Max Angle range, respecting the Point Type Filter.
+    *   `Custom Points`: Manually select points from a list. The list is filtered by the Point Type Filter (All/Inner/Outer). Assign individual radii.
+    *   `Custom Corners`: Manually select *only* geometric corners from a list. This list is also filtered by the Point Type Filter (All/Inner/Outer). Assign individual radii.
+*   **Global Radius:** Target radius (pixels) for `Edit All Points` & `Only Corners` modes.
+*   **Flatness:** Percentage (0-100%) modifying curve control points (0% = circular). Applies to all modes.
+*   **Point Type Filter:** **(Enhanced)** Dropdown (`All`, `Inner`, `Outer`).
+    *   Filters points processed by `Edit All Points` / `Only Corners`.
+    *   Filters points/corners *displayed* in the list for `Custom Points` / `Custom Corners`.
+*   **Min/Max Angle Filter:** Sliders (0°–180°) defining the angle range *only* for the `Only Corners` mode.
+*   **Custom List Panel:** **(Enhanced)** (Visible only in `Custom Points` / `Custom Corners` modes)
+    *   **Title:** Dynamically changes to "Custom Points" or "Custom Corners".
+    *   **Content:** List displays points or geometric corners, filtered by the `Point Type Filter`.
+    *   **Checkbox:** Enables/disables rounding for the corresponding item.
+    *   **Point Label:** `P<index>` identifies the point globally (using its original index on the full path). Coordinates shown for reference.
+    *   **Radius Input:** Text field for specific radius when checkbox is ticked.
+    *   **Pagination:** `Previous`/`Next` buttons for navigating long lists.
 
 ---
 
 ## 📐 The Rounding Algorithm Explained
 
-ShapeRounder employs precise calculations to create smooth, geometrically sound rounded corners.
+ShapeRounder employs precise calculations using the user-provided core formula.
 
 ### Bezier Arc Approximation
 
-The core of the rounding uses a standard formula to approximate a circular arc segment with a cubic Bezier curve. For a corner point `P` with adjacent points `P_prev` and `P_next`, and a target `radius`:
+The core rounding uses the following steps for a candidate corner point `P` with adjacent points `P_prev` and `P_next`, and a target `radiusToUse`:
 
-1.  **Calculate the Interior Angle (θ):** The angle formed by the segments `P_prev - P` and `P_next - P` is calculated.
-
-2.  **Determine Offset Distance:** Points are moved along the segments away from the corner `P` to create space for the curve. The distance (`offset`) moved along each segment is calculated using:
-
+1.  **Calculate Interior Angle (θ):** Angle between segments `P_prev - P` and `P_next - P`.
+2.  **Determine Offset Distance:** Points `A` and `B` are placed along the segments away from `P`. The distance (`offset`) is calculated based on `radiusToUse`, `θ`, and limited by half the segment lengths (`l1/2`, `l2/2`) to prevent overlaps:
+    ```javascript
+    offset = Math.min(Math.abs(radiusToUse / Math.tan(thetaRad / 2.0)), l1 / 2.0, l2 / 2.0);
     ```
-    offset = min(
-        radius / tan(θ_rad / 2),      // Theoretical distance needed to form the arc
-        distance(P, P_prev) / 2,      // Limited by length of incoming segment
-        distance(P, P_next) / 2       // Limited by length of outgoing segment
-    )
+    *(Note: Absolute value used for robustness with tan)*
+3.  **Calculate Bezier Handle Length (h):** Based on the arc angle (`PI - θ_rad`), the target radius (`radiusToUse`), and `flatness`:
+    ```javascript
+    h = (4 / 3) * Math.tan((Math.PI - thetaRad) / 4) * radiusToUse * (1 - params.flatness);
     ```
-
-    Where:
-    - `radius` is the desired rounding radius set by the user.
-    - `θ_rad` is the corner angle at point `P`, in **radians**.
-    - `P` is the corner point to be rounded.
-    - `P_prev` is the previous anchor point before `P` on the path.
-    - `P_next` is the next anchor point after `P`.
-    - `distance(a, b)` computes the Euclidean distance between points `a` and `b`.
-
-    This ensures:
-    - The curve fits safely between segments without extending too far.
-    - The rounding is gracefully degraded when segments are too short.
-    - The result maintains path integrity, avoiding overlaps or artifacts.
-
-    If the calculated `offset` is near zero (due to tight geometry), rounding for that point is skipped automatically.
-
-3.  **Calculate Bezier Handle Length (h):** The length of the Bezier control handles needed to approximate the arc is calculated using the formula:
-
-    ```
-    h = (4 / 3) * tan((π - θ_rad) / 4) * radius * (1 - flatness)
-    ```
-
-    Where:
-    *   `θ_rad` is the corner angle in radians.
-    *   `radius` is the desired corner radius.
-    *   `flatness` is the user-defined flatness factor (0.0 to 1.0).
-
 4.  **Position New Control Points:**
-    *   The original corner point `P` is replaced by *two* new points, `A` and `B`.
-    *   The control handle for `A` (extending towards `B`) is positioned along the vector `P - A`, with length `h`.
-    *   The control handle for `B` (extending towards `A`) is positioned along the vector `P - B`, with length `h`.
-    *   The other handles for `A` and `B` point directly at their respective anchor points (`A.rightDirection = A.anchor`, `B.leftDirection = B.anchor`), creating a smooth transition into the curve.
+    *   Original corner `P` is replaced by new points `A` and `B`.
+    *   Handles for `A` and `B` are calculated using `h` and positioned relative to the original corner `P` to create the curve. The other handles point directly at their anchors (`A.rightDirection = A.anchor`, `B.leftDirection = B.anchor`).
+
+### Geometric Safety Limits
+
+The `offset` calculation inherently limits the rounding radius based on the lengths of the incoming and outgoing path segments, preventing the curve from extending beyond the midpoint of either segment. This ensures path integrity.
+
+### Geometric Corner Detection **(New)**
+
+For the **`Only Corners`** and **`Custom Corners`** modes, the script identifies "geometric corners" by checking if a `PathPointInfo` object (`curr`):
+*   Has `curr.kind === PointKind.CORNERPOINT`.
+*   Has its `curr.leftDirection` handle coincident with its `curr.anchor` point (within tolerance).
+*   Has its `curr.rightDirection` handle coincident with its `curr.anchor` point (within tolerance).
+This distinguishes sharp corners formed by straight lines from smooth points or points on curves.
+
+### Point Type Detection (Inner/Outer) **(New)**
+
+The **`Point Type Filter`** uses the 2D cross-product of the vectors forming the corner (`P_prev - P` and `P_next - P`) to determine if a corner is `Inner` (concave, cross product > 0 in Y-down coordinates) or `Outer` (convex, cross product < 0). This filter applies to `Edit All Points`, `Only Corners`, and dynamically filters the lists in `Custom Points` and `Custom Corners` modes.
 
 ---
 
 ## 🛡️ Non-Destructive Workflow & Safety
 
+
 ShapeRounder is designed to modify paths safely:
 
-*   **Automatic Backup:** Before processing, the script *duplicates* the selected path. The original path is renamed by appending `(Original)` (e.g., `Path 1` becomes `Path 1 (Original)`). Your source path is never directly altered.
-*   **Clear Output Naming:** The newly created path with rounded corners is named by appending `(Rounded)` to the original base name (e.g., `Path 1 (Rounded)`).
-*   **Handling Name Conflicts:** If names like `Path 1 (Original)` or `Path 1 (Rounded)` already exist, the script automatically appends a counter (e.g., `Path 1 (Original) (1)`, `Path 1 (Rounded) (2)`) to ensure unique names.
-*   **Error Recovery (Undo Fallback):** If an unexpected error occurs during the rounding process (e.g., due to highly complex or malformed path data), the script attempts to automatically restore the original path data to the renamed `(Original)` path item, minimizing data loss. A message will alert you if an error occurred and if restoration was attempted. You can then use Photoshop's regular Undo (`Ctrl+Z`/`Cmd+Z`) to revert the renaming and path creation steps.
+*   **Automatic Backup:** Duplicates the selected path and renames the original by appending `(Original)`.
+*   **Clear Output Naming:** Creates the new path appending `(Rounded)`.
+*   **Handling Name Conflicts:** Appends counters (`(1)`, `(2)`, etc.) if names already exist.
+*   **Error Recovery (Undo Fallback):** Attempts to restore the original path data if an unexpected error occurs during processing.
 
 ---
 
 ## ⚠️ Known Limitations & Considerations
 
-*   **No Live Preview:** Due to limitations of ExtendScript's ScriptUI, there is no live visual preview of the rounding on the canvas as you adjust parameters. You must click `Apply` to see the result.
-*   **No Visual Point Markers:** The script cannot draw markers directly on the canvas to indicate which point corresponds to `P0`, `P1`, etc., in the `Custom Points` list. Users need to infer based on path order or coordinates.
-*   **Single Path Processing:** The script processes only one selected path at a time. Batch processing multiple paths is not supported.
-*   **ExtendScript Based:** This script uses Adobe's older ExtendScript engine. It is **not compatible** with newer UXP-based Photoshop environments directly (though it should run in modern Photoshop versions that still support ExtendScript, potentially via Rosetta on Apple Silicon).
-*   **Vector Paths Only:** Cannot round corners of rasterized shapes, pixel layers, smart objects, or text layers directly. The target must be a genuine vector path.
-*   **Performance:** On extremely complex paths with thousands of points, the script might take a noticeable moment to process, especially when populating the `Custom Points` list.
-*   **Clipping Paths:** The script intentionally ignores paths designated as Clipping Paths to avoid unintended behavior with layer clipping.
+*   **No Live Preview:** Requires clicking `Apply` to see results.
+*   **No Visual Point Markers:** Cannot visually mark points on canvas corresponding to the list items.
+*   **Single Path Processing:** Processes one selected path at a time.
+*   **ExtendScript Based:** Not compatible with UXP directly (runs via ExtendScript engine/Rosetta).
+*   **Vector Paths Only:** Cannot round raster shapes, pixels, smart objects, text layers.
+*   **Performance:** May lag on paths with thousands of points, especially populating custom lists.
+*   **Clipping Paths:** Intentionally ignored.
+*   **Complex Curves:** The definition of "geometric corner" is specific. Points on curves or points connecting a curve and a line will not be identified as geometric corners by the `Only Corners` or `Custom Corners` modes. Use `Edit All Points` or `Custom Points` for these.
 
 ---
 
@@ -300,20 +309,17 @@ ShapeRounder is designed to modify paths safely:
 
 Potential areas for future development include:
 
-*   **UXP Plugin Rewrite:** Rebuilding the tool as a modern UXP plugin for improved performance, UI capabilities (like live preview), and future Photoshop compatibility.
-*   **On-Canvas Point Identification:** Adding visual cues on the canvas to identify points selected in the UI.
-*   **Live Curvature Preview:** Implementing a way to visualize the curve before applying.
-*   **Radius Preset System:** Allow saving and loading common rounding configurations.
-*   **Batch Processing:** Add support for rounding multiple selected paths simultaneously.
-*   **Path Grouping:** Explore options for handling paths within layer groups.
+*   **UXP Plugin Rewrite:** Modern UXP version for better performance and UI (live preview).
+*   **On-Canvas Point Identification:** Visual cues for selected points/corners.
+*   **Radius Preset System:** Save/load common configurations.
+*   **Batch Processing:** Support multiple selected paths.
+*   **More Sophisticated Point Classification:** Option to identify points connecting curves and lines.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, bug reports, and feature suggestions are welcome! Please feel free to:
-*   Open an issue on the GitHub repository (if applicable) to report bugs or suggest features.
-*   Fork the repository, make your changes, and submit a pull request.
+Contributions, bug reports, and feature suggestions are welcome!
 
 ---
 
@@ -321,42 +327,14 @@ Contributions, bug reports, and feature suggestions are welcome! Please feel fre
 
 This project is licensed under the **MIT License**.
 
-```
-MIT License
-
-Copyright (c) [Year] [Your Name/GitHub Username]
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-You are free to use, modify, fork, and share this script. Attribution is appreciated but not required.
 ---
 
 ## 💡 Development Insights
 
-ShapeRounder was born from a desire to bring more robust vector tools into Photoshop's environment. The development involved a deep dive into:
 
-*   **Vector Geometry & Bezier Mathematics:** Understanding how curves are defined and manipulated.
-*   **Adobe Photoshop ExtendScript API:** Navigating the intricacies of scripting Photoshop's path objects and UI.
-*   **ScriptUI Development:** Crafting an interactive and user-friendly interface within ExtendScript's constraints.
-*   **Algorithm Design & Edge Case Handling:** Ensuring the rounding logic is robust and handles various path configurations gracefully (open/closed paths, short segments, sharp angles).
+ShapeRounder was born from a desire to bring more robust vector tools into Photoshop's environment. The development involved a deep dive into vector geometry, Bezier mathematics, the Adobe Photoshop ExtendScript API, and ScriptUI development. Ensuring the rounding logic was robust and handled various path configurations gracefully (open/closed paths, short segments, sharp angles, different point types) was a key focus. **Iterative refinement based on user feedback led to enhanced filtering options (Point Type, Geometric Corner), dynamic UI lists, and more precise mode definitions.**
 
-During development, **AI assistants (ChatGPT, Grok, Gemini)** were utilized as collaborative tools for exploring mathematical concepts, generating code snippets for specific algorithms (like Bezier approximation), debugging complex logic, and refining UI layouts. Every AI-generated suggestion was critically reviewed, tested, adapted, and integrated manually to ensure correctness and alignment with the project goals. The final script represents a custom-built solution tailored specifically for this rounding task.
+During development, AI assistants (ChatGPT, Grok, Gemini) were utilized as collaborative tools for exploring mathematical concepts, generating code snippets for specific algorithms, debugging complex logic, and refining UI layouts. Every AI-generated suggestion was critically reviewed, tested, adapted, and integrated manually to ensure correctness and alignment with the project goals. The final script represents a custom-built solution tailored specifically for this rounding task, refined through multiple iterations.
 
 ---
 
@@ -380,7 +358,7 @@ This script is designed for Adobe Photoshop versions that support **ExtendScript
 | **Path Types**             | Work Path, Shape Layer Path, Vector Mask Path | ✅ |
 | **Path Types (Ignored)**   | Clipping Path        | ❌ (By design)                            |
 
-*Note: Future major versions of Photoshop may phase out ExtendScript support in favor of UXP. This script will function as long as the ExtendScript engine is available.*
+*Note: Future major versions of Photoshop may phase out ExtendScript support...*
 
 ---
 
